@@ -1,44 +1,46 @@
 #!/usr/bin/node
-// Script to fetch Star Wars characters using the Star Wars API
+// Prints all characters of a Star Wars movie in order
 
 const request = require('request');
+const FILM_ID = process.argv[2];
+const API_URL = `https://swapi-api.hbtn.io/api/films/${FILM_ID}/`;
 
-// Command-line argument for film ID
-const FILMID = process.argv[2];
-
-// Base URL of the Star Wars API
-const URL_BASE = 'https://swapi-api.hbtn.io/api/films';
-
-// Function to make HTTP requests using Promises
-function doRequest (url) {
-  return new Promise((resolve, reject) => {
-    request(url, (error, res, body) => {
-      if (!error && res.statusCode === 200) {
-        resolve(JSON.parse(body));
-      } else {
-        reject(error || `Status Code: ${res.statusCode}`);
-      }
-    });
-  });
+// Ensure a valid movie ID is provided
+if (!FILM_ID) {
+  console.error('Usage: ./0-starwars_characters.js <Movie ID>');
+  process.exit(1);
 }
 
-// Main function to fetch characters of a film
-async function main (filmID) {
-  if (!filmID) {
-    console.error('Usage: ./script.js <filmID>');
+request(API_URL, (error, response, body) => {
+  if (error) {
+    console.error(error);
     return;
   }
 
-  try {
-    const res = await doRequest(`${URL_BASE}/${filmID}`);
-    for (const e of res.characters) {
-      const pj = await doRequest(e);
-      console.log(pj.name);
-    }
-  } catch (error) {
-    console.error('Error:', error);
-  }
-}
+  const film = JSON.parse(body);
+  const characterUrls = film.characters;
 
-// Execute the script
-main(FILMID);
+  // Fetch character names in order
+  const fetchCharacter = (url) =>
+    new Promise((resolve, reject) => {
+      request(url, (error, response, body) => {
+        if (error) {
+          reject(error);
+        } else {
+          resolve(JSON.parse(body).name);
+        }
+      });
+    });
+
+  // Process all character URLs sequentially to ensure proper order
+  (async () => {
+    try {
+      for (const url of characterUrls) {
+        const characterName = await fetchCharacter(url);
+        console.log(characterName);
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  })();
+});
