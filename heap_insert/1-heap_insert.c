@@ -32,6 +32,7 @@ heap_t *heap_insert(heap_t **root, int value)
 		free(new_node);
 		return (NULL);
 	}
+
 	queue[rear++] = *root;
 
 	while (front < rear)
